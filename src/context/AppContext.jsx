@@ -59,6 +59,10 @@ export const AppProvider = ({ children }) => {
   });
 
   const [authSession, setAuthSession] = useState(null);
+
+  // Separate Initial App Startup Loading (shows splash screen ONLY once on boot)
+  // from silent background data updates
+  const [initialLoading, setInitialLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -306,7 +310,7 @@ export const AppProvider = ({ children }) => {
   }, [familyMembers]);
 
   // ----------------------------------------------------
-  // INDIVIDUAL SUPABASE LOADERS WITH REQUIRED CONSOLE LOGS
+  // INDIVIDUAL SUPABASE LOADERS
   // ----------------------------------------------------
 
   const loadMembers = useCallback(async () => {
@@ -319,7 +323,6 @@ export const AppProvider = ({ children }) => {
       }
       const list = data || [];
       console.log(`Members loaded: ${list.length}`);
-      console.log(`Loaded Member Count: ${list.length}`);
       setFamilyMembers(list);
       return list;
     } catch (err) {
@@ -378,7 +381,6 @@ export const AppProvider = ({ children }) => {
       }
       const list = data || [];
       console.log(`Notifications loaded: ${list.length}`);
-      console.log(`Loaded Notification Count: ${list.length}`);
       setNotifications(list);
       return list;
     } catch (err) {
@@ -387,11 +389,19 @@ export const AppProvider = ({ children }) => {
     }
   }, []);
 
-  // Central Fetch Function executing all loaders immediately on startup
-  const fetchSupabaseData = useCallback(async () => {
-    if (!isSupabaseConfigured()) return;
+  // Central Fetch Function executing loaders
+  // isInitial = true ONLY during initial app boot to show splash screen once
+  // isInitial = false during background polling & Realtime updates (runs silently without splash screen)
+  const fetchSupabaseData = useCallback(async (isInitial = false) => {
+    if (!isSupabaseConfigured()) {
+      if (isInitial) setInitialLoading(false);
+      return;
+    }
+
+    if (isInitial) setInitialLoading(true);
     setLoading(true);
     setError(null);
+
     try {
       await Promise.all([
         loadMembers(),
@@ -414,6 +424,7 @@ export const AppProvider = ({ children }) => {
       setError(err.message);
     } finally {
       setLoading(false);
+      if (isInitial) setInitialLoading(false);
     }
   }, [loadMembers, loadIncome, loadExpenses, loadNotifications]);
 
@@ -430,7 +441,6 @@ export const AppProvider = ({ children }) => {
   };
 
   const markNotificationAsRead = async (notificationId) => {
-    console.log("Notification ID:", notificationId);
     if (!isSupabaseConfigured()) {
       setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n));
       return;
@@ -451,7 +461,6 @@ export const AppProvider = ({ children }) => {
   };
 
   const markAllNotificationsAsRead = async () => {
-    console.log("Marking all notifications read in Supabase...");
     if (!isSupabaseConfigured()) {
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       return;
@@ -468,11 +477,9 @@ export const AppProvider = ({ children }) => {
     } catch (err) {
       console.error("Mark All Read Exception:", err);
     }
-    showToast('All notifications marked as read', 'success');
   };
 
   const deleteNotification = async (notificationId) => {
-    console.log("Notification ID:", notificationId);
     if (!isSupabaseConfigured()) {
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
       return;
@@ -493,7 +500,6 @@ export const AppProvider = ({ children }) => {
   };
 
   const clearAllNotifications = async () => {
-    console.log("Clearing all notifications from Supabase...");
     if (!isSupabaseConfigured()) {
       setNotifications([]);
       return;
@@ -513,21 +519,24 @@ export const AppProvider = ({ children }) => {
     showToast('Cleared all notifications', 'info');
   };
 
-  // Immediate Startup Fetch & Realtime Subscriptions for ALL tables
+  // Immediate Startup Fetch & Silent Background Polling
   useEffect(() => {
-    fetchSupabaseData();
+    // Cold Startup Fetch (isInitial = true -> shows splash screen once)
+    fetchSupabaseData(true);
 
+    // Silent Background Polling every 30s (isInitial = false -> runs silently without splash screen)
     const pollInterval = setInterval(() => {
-      fetchSupabaseData();
-    }, 10000);
+      fetchSupabaseData(false);
+    }, 30000);
 
+    // Silent Realtime Channel Callback (runs silently without splash screen)
     const channel = realtimeService.subscribeToAllTables(
       (tableName, payload) => {
-        console.log('Realtime event received:', { tableName, payload });
-        fetchSupabaseData();
+        console.log('[Realtime Sync] Change detected on:', tableName);
+        fetchSupabaseData(false);
       },
       (payload) => {
-        console.log('Realtime event received for notifications:', payload);
+        console.log('[Realtime Sync] Notification change:', payload);
         loadNotifications();
       }
     );
@@ -550,9 +559,7 @@ export const AppProvider = ({ children }) => {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // ----------------------------------------------------
-  // FAMILY MEMBERS CRUD (SUPABASE FIRST -> RELOAD -> CREATE NOTIFICATION)
-  // ----------------------------------------------------
+  // FAMILY MEMBERS CRUD
   const addFamilyMember = async (memberData) => {
     if (!isSupabaseConfigured()) return;
     try {
@@ -569,7 +576,7 @@ export const AppProvider = ({ children }) => {
       }
 
       console.log('Member inserted:', data);
-      await fetchSupabaseData();
+      await fetchSupabaseData(false);
       await createNotification('Family Member Added', `New member "${memberData.name}" added to the family hub`, 'system');
       showToast(`Family member "${memberData.name}" added successfully!`, 'success');
     } catch (err) {
@@ -593,7 +600,7 @@ export const AppProvider = ({ children }) => {
       }
 
       console.log('Member updated:', data);
-      await fetchSupabaseData();
+      await fetchSupabaseData(false);
       await createNotification('Family Member Updated', `Member "${memberData.name || 'Member'}" details updated`, 'system');
       showToast('Family member updated successfully!', 'success');
     } catch (err) {
@@ -618,7 +625,7 @@ export const AppProvider = ({ children }) => {
       }
 
       console.log('Member deleted:', data);
-      await fetchSupabaseData();
+      await fetchSupabaseData(false);
       await createNotification('Family Member Deleted', `Member "${target?.name || 'Member'}" deleted from family hub`, 'system');
       showToast('Family member deleted', 'info');
     } catch (err) {
@@ -646,7 +653,7 @@ export const AppProvider = ({ children }) => {
       }
 
       console.log('Member status updated:', data);
-      await fetchSupabaseData();
+      await fetchSupabaseData(false);
       await createNotification(
         nextStatus === 'Active' ? 'Family Member Activated' : 'Family Member Deactivated',
         `Member "${target.name}" marked as ${nextStatus}`,
@@ -658,9 +665,7 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // ----------------------------------------------------
-  // INCOME CRUD (SUPABASE FIRST -> RELOAD -> CREATE NOTIFICATION)
-  // ----------------------------------------------------
+  // INCOME CRUD
   const addIncome = async (incomeData) => {
     const formattedAmt = formatIndianNumber(incomeData.amount);
     console.log("Adding Income...", incomeData);
@@ -694,7 +699,7 @@ export const AppProvider = ({ children }) => {
         }
 
         console.log('Income inserted:', incData);
-        await fetchSupabaseData();
+        await fetchSupabaseData(false);
 
         const notifBody = `${memberName} added ${familySettings.currency}${formattedAmt} (${incomeData.source})`;
         await createNotification('Income Added', notifBody, 'income');
@@ -705,9 +710,7 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // ----------------------------------------------------
-  // EXPENSE CRUD (SUPABASE FIRST -> RELOAD -> CREATE NOTIFICATION)
-  // ----------------------------------------------------
+  // EXPENSE CRUD
   const addExpense = async (expenseData) => {
     const formattedAmt = formatIndianNumber(expenseData.amount);
     console.log("Adding Expense...", expenseData);
@@ -747,7 +750,7 @@ export const AppProvider = ({ children }) => {
         }
 
         console.log('Expense inserted:', expData);
-        await fetchSupabaseData();
+        await fetchSupabaseData(false);
 
         const notifBody = `${memberName} spent ${familySettings.currency}${formattedAmt} (${expName})`;
         await createNotification('Expense Added', notifBody, 'expense');
@@ -816,7 +819,7 @@ export const AppProvider = ({ children }) => {
         }
 
         console.log(`${table} updated:`, upData);
-        await fetchSupabaseData();
+        await fetchSupabaseData(false);
 
         const notifBody = `${memberName} updated ${isInc ? 'income' : 'expense'} to ${familySettings.currency}${formattedAmt}`;
         await createNotification(
@@ -855,7 +858,7 @@ export const AppProvider = ({ children }) => {
         }
 
         console.log(`${table} deleted:`, delData);
-        await fetchSupabaseData();
+        await fetchSupabaseData(false);
 
         const notifBody = `${isInc ? 'Income' : 'Expense'} record of ${familySettings.currency}${formattedAmt} (${isInc ? target.source : (target.category || target.expense_name)}) deleted`;
         await createNotification(
@@ -954,6 +957,7 @@ export const AppProvider = ({ children }) => {
         loadExpenses,
         loadNotifications,
         fetchSupabaseData,
+        initialLoading,
         loading,
         error,
         createNotification,

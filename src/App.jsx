@@ -10,7 +10,7 @@ import { PwaHandler, InstallPwaButton } from './components/PwaHandler';
 import { AppLoadingScreen } from './components/AppLoadingScreen';
 
 const AppContent = () => {
-  const { currentPath, navigate, loading } = useApp();
+  const { currentPath, navigate, initialLoading } = useApp();
 
   const isAdminRoute = currentPath.startsWith('/admin');
 
@@ -20,8 +20,8 @@ const AppContent = () => {
       {/* Global PWA Offline & Auto-Update Handler */}
       <PwaHandler />
 
-      {/* Premium Loading Screen (shown during initial data loading) */}
-      {loading && <AppLoadingScreen message="Loading Family Finance..." />}
+      {/* Premium Startup Splash/Loading Screen (shown ONLY ONCE on cold boot) */}
+      {initialLoading && <AppLoadingScreen message="Loading Family Finance..." />}
 
       {/* Sticky Top Header Bar */}
       <header className="sticky top-0 z-40 bg-[#FFFFFF] border-b border-[#E5E7EB] shadow-xs">

@@ -1,9 +1,9 @@
 // ========================================================
-// FAMILY FINANCE - PRODUCTION-READY PWA SERVICE WORKER
-// Supports Offline Caching, Background Sync, Web Push & Auto Update
+// FAMILY FINANCE - SILENT PRODUCTION-READY PWA SERVICE WORKER
+// Pre-caches Static App Shell Only; Operates Silently Without Prompts
 // ========================================================
 
-const CACHE_NAME = 'family-finance-v1.0.0';
+const CACHE_NAME = 'family-finance-v1.0.1';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -19,17 +19,17 @@ const STATIC_ASSETS = [
   '/icons/icon-512x512.svg'
 ];
 
-// Install Event - Pre-cache App Shell & Static Assets
+// Install Event - Pre-cache App Shell & Static Assets silently
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[ServiceWorker] Pre-caching App Shell & Assets...');
+      console.log('[ServiceWorker] Pre-caching App Shell & Static Assets...');
       return cache.addAll(STATIC_ASSETS);
-    }).then(() => self.skipWaiting())
+    })
   );
 });
 
-// Activate Event - Cleanup Old Caches & Claim Clients
+// Activate Event - Cleanup Old Caches silently
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -41,28 +41,34 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    }).then(() => self.clients.claim())
+    })
   );
 });
 
-// Fetch Event - Stale-While-Revalidate for Static Assets, Network-First for APIs
+// Fetch Event - Network-First for APIs (Supabase), Cache-First for Static Assets
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // DO NOT CACHE SUPABASE API RESPONSES PERMANENTLY
+  // NEVER CACHE SUPABASE API RESPONSES OR NON-GET REQUESTS
   if (url.origin.includes('supabase.co') || event.request.method !== 'GET') {
     event.respondWith(
-      fetch(event.request).catch(() => {
-        return caches.match(event.request);
-      })
+      fetch(event.request).catch(() => caches.match(event.request))
     );
     return;
   }
 
-  // Stale-While-Revalidate Strategy for HTML, CSS, JS, Images, Icons & App Shell
+  // Network-First for HTML to prevent stale app reloads, Cache-First for static icons/assets
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match('/index.html'))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request).then((networkResponse) => {
+      if (cachedResponse) return cachedResponse;
+      return fetch(event.request).then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -70,27 +76,15 @@ self.addEventListener('fetch', (event) => {
           });
         }
         return networkResponse;
-      }).catch((err) => {
-        console.log('[ServiceWorker] Network fetch failed, serving offline cache:', err);
-        return cachedResponse || caches.match('/index.html');
-      });
-
-      return cachedResponse || fetchPromise;
+      }).catch(() => caches.match('/index.html'));
     })
   );
 });
 
-// Message Event - Skip Waiting for Auto-Update Trigger
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-});
-
-// Push Event - Background Notifications
+// Push Event - Background Push Notifications
 self.addEventListener('push', (event) => {
   let data = {
-    title: 'Family Finance Alert',
+    title: 'Family Finance',
     body: 'New financial activity recorded.',
     url: '/'
   };

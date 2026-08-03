@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { WifiOff, Download, RefreshCw, Sparkles, AlertTriangle } from 'lucide-react';
+import { WifiOff, Download, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const InstallPwaButton = () => {
@@ -51,11 +51,9 @@ export const PwaHandler = () => {
   const { loadNotifications, fetchSupabaseData, showToast } = useApp();
 
   const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' ? !navigator.onLine : false);
-  const [swUpdateWaiting, setSwUpdateWaiting] = useState(null);
-  const [showUpdateBanner, setShowUpdateBanner] = useState(false);
   const [checkingNetwork, setCheckingNetwork] = useState(false);
 
-  // 1. Continuous Network Listener & Offline Modal Handler
+  // Continuous Network Listener & Offline Modal Handler
   useEffect(() => {
     const handleOnline = () => {
       setIsOffline(false);
@@ -93,36 +91,9 @@ export const PwaHandler = () => {
     setCheckingNetwork(false);
   };
 
-  // 2. Service Worker Auto Update Detection
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then((reg) => {
-        reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                setSwUpdateWaiting(newWorker);
-                setShowUpdateBanner(true);
-              }
-            });
-          }
-        });
-      });
-    }
-  }, []);
-
-  const handleUpdateNow = () => {
-    if (swUpdateWaiting) {
-      swUpdateWaiting.postMessage({ type: 'SKIP_WAITING' });
-    }
-    setShowUpdateBanner(false);
-    window.location.reload();
-  };
-
   return (
     <>
-      {/* Fullscreen Offline Modal (Strict Requirement) */}
+      {/* Fullscreen Offline Modal */}
       <AnimatePresence>
         {isOffline && (
           <motion.div
@@ -167,44 +138,6 @@ export const PwaHandler = () => {
                 )}
               </button>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Auto-Update Banner */}
-      <AnimatePresence>
-        {showUpdateBanner && !isOffline && (
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 z-50 bg-[#111827] text-white p-4 rounded-2xl shadow-2xl border border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-3 max-w-md"
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-[#2E7D32] text-white">
-                <Sparkles className="w-4 h-4" />
-              </div>
-              <div>
-                <h4 className="text-xs font-extrabold text-white">A new version is available.</h4>
-                <p className="text-[10px] text-slate-300">Update now to get the latest features.</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <button
-                onClick={handleUpdateNow}
-                className="flex-1 sm:flex-initial px-3 py-1.5 rounded-xl bg-[#2E7D32] text-white text-xs font-bold hover:bg-emerald-700 transition flex items-center justify-center gap-1"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Update Now</span>
-              </button>
-              <button
-                onClick={() => setShowUpdateBanner(false)}
-                className="px-2.5 py-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white text-xs font-bold transition"
-              >
-                Later
-              </button>
-            </div>
           </motion.div>
         )}
       </AnimatePresence>
