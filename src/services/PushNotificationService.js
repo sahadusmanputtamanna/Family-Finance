@@ -1,57 +1,74 @@
-// ========================================================
-// PUSH NOTIFICATION SERVICE: PWA Service Worker Abstraction Layer
-// Supports Chrome, Edge, Android, Samsung Internet
-// ========================================================
+// ================================================================
+// FAMILY FINANCE PUSH NOTIFICATION SERVICE
+// Shows native OS notifications via the Service Worker.
+// On Android (Chrome/TWA) this surfaces in the status bar and lock screen.
+// Does NOT register any SW – registration is handled exclusively in main.jsx
+// ================================================================
+
+const ICON_URL  = '/icons/icon-192x192.png';
+const BADGE_URL = '/icons/icon-72x72.png';
 
 class PushNotificationService {
   constructor() {
-    this.swRegistration = null;
-    this.init();
+    this._swReg = null;
   }
 
-  async init() {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      try {
-        const reg = await navigator.serviceWorker.register('/sw.js');
-        this.swRegistration = reg;
-        console.log('[PushNotificationService] Service Worker registered:', reg);
-      } catch (err) {
-        console.warn('[PushNotificationService] SW Registration notice:', err);
-      }
+  /** Lazily resolve the active sw.js registration */
+  async _getSwReg() {
+    if (this._swReg) return this._swReg;
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return null;
+    try {
+      // navigator.serviceWorker.ready resolves to the active registration
+      this._swReg = await navigator.serviceWorker.ready;
+      return this._swReg;
+    } catch (e) {
+      console.warn('[PushNotificationService] SW ready error:', e);
+      return null;
     }
   }
 
+  /** Request OS notification permission (Android 13+ POST_NOTIFICATIONS dialog) */
   async requestPermission() {
     if (typeof window === 'undefined' || !('Notification' in window)) return false;
     if (Notification.permission === 'granted') return true;
-
+    if (Notification.permission === 'denied')  return false;
     try {
       const perm = await Notification.requestPermission();
       return perm === 'granted';
-    } catch (e) {
+    } catch {
       return false;
     }
   }
 
+  /**
+   * Show a native push notification.
+   * Uses SW showNotification → appears in Android status bar even when app is open.
+   * Falls back to Notification API for desktop browsers.
+   */
   async sendLocalPush(title, body, type = 'system', url = '/') {
-    const hasPerm = await this.requestPermission();
-    if (!hasPerm) return;
+    const granted = await this.requestPermission();
+    if (!granted) return;
 
-    if (this.swRegistration && this.swRegistration.showNotification) {
-      try {
-        await this.swRegistration.showNotification(title, {
-          body,
-          icon: '/favicon.ico',
-          badge: '/favicon.ico',
-          vibrate: [100, 50, 100],
-          data: { url, type },
-          tag: 'ffh-push-' + Date.now()
-        });
-      } catch (e) {
-        new Notification(title, { body, icon: '/favicon.ico' });
+    const options = {
+      body,
+      icon:    ICON_URL,
+      badge:   BADGE_URL,
+      vibrate: [200, 100, 200],
+      data:    { url, type },
+      tag:     `ffh-${type}`,
+      renotify: true,
+      requireInteraction: false
+    };
+
+    try {
+      const reg = await this._getSwReg();
+      if (reg?.showNotification) {
+        await reg.showNotification(title, options);
+      } else {
+        new Notification(title, { body, icon: ICON_URL });
       }
-    } else if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(title, { body, icon: '/favicon.ico' });
+    } catch (e) {
+      try { new Notification(title, { body, icon: ICON_URL }); } catch {}
     }
   }
 }

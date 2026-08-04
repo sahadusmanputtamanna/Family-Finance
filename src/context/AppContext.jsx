@@ -390,6 +390,9 @@ export const AppProvider = ({ children }) => {
       const list = data || [];
       console.log(`Notifications loaded: ${list.length}`);
       setNotifications(list);
+      // Sync Android app badge with unread count
+      const unreadCount = list.filter(n => !n.is_read).length;
+      firebaseService.updateBadge(unreadCount);
       return list;
     } catch (err) {
       console.error('loadNotifications exception:', err);
@@ -471,6 +474,7 @@ export const AppProvider = ({ children }) => {
   const markAllNotificationsAsRead = async () => {
     if (!isSupabaseConfigured()) {
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      firebaseService.updateBadge(0);
       return;
     }
     try {
@@ -481,6 +485,7 @@ export const AppProvider = ({ children }) => {
         .select();
 
       if (error) console.error(error);
+      firebaseService.updateBadge(0);
       await loadNotifications();
     } catch (err) {
       console.error("Mark All Read Exception:", err);
@@ -549,9 +554,14 @@ export const AppProvider = ({ children }) => {
       }
     );
 
-    pushNotificationService.requestPermission();
-    firebaseService.initializeFirebase().then(() => {
-      firebaseService.getDeviceToken();
+    // Initialize Firebase, get FCM token, and start listening for foreground messages
+    firebaseService.initializeFirebase().then(async () => {
+      await firebaseService.getDeviceToken();
+      // Listen for foreground FCM messages (shows native status bar notification)
+      firebaseService.listenForegroundMessages((payload) => {
+        // Reload notifications panel when a new FCM message arrives
+        loadNotifications();
+      });
     });
 
     return () => {

@@ -1,242 +1,228 @@
-// ========================================================
-// FIREBASE SERVICE: Official Firebase SDK Implementation
-// Uses getToken() from 'firebase/messaging' & ServiceWorker Registration
-// NO fake tokens or placeholders
-// ========================================================
+// ================================================================
+// FIREBASE SERVICE
+// FCM Token registration, foreground message handling, badge sync
+// Registers firebase-messaging-sw.js for background/terminated delivery
+// ================================================================
 
 import { getToken, onMessage } from 'firebase/messaging';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
-import {
-  firebaseConfig,
-  isFirebaseConfigured,
-  getMessagingAsync
-} from '../lib/firebaseClient';
+import { firebaseConfig, isFirebaseConfigured, getMessagingAsync } from '../lib/firebaseClient';
+import { pushNotificationService } from './PushNotificationService';
+
+const ICON_URL  = '/icons/icon-192x192.png';
+const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY || '';
 
 class FirebaseService {
   constructor() {
-    this.isInitialized = false;
-    this.deviceToken = null;
-    this.messaging = null;
-    this.swRegistration = null;
+    this.isInitialized     = false;
+    this.deviceToken       = null;
+    this.messaging         = null;
+    this.fcmSwRegistration = null;          // firebase-messaging-sw.js registration
+    this._unsubscribeOnMessage = null;
   }
 
-  /**
-   * Initializes Firebase Messaging & Registers Service Worker
-   */
+  // ----------------------------------------------------------------
+  // Initialize Firebase Messaging
+  // Registers firebase-messaging-sw.js (separate from main sw.js)
+  // ----------------------------------------------------------------
   async initializeFirebase() {
     if (this.isInitialized) return true;
-
-    if (!isFirebaseConfigured()) {
-      console.log('[FirebaseService] Official FCM architecture ready. Provide VITE_FIREBASE_* environment variables to activate live push.');
-      return false;
-    }
+    if (!isFirebaseConfigured()) return false;
 
     try {
       this.messaging = await getMessagingAsync();
 
       if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-        this.swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-        console.log('[FirebaseService] firebase-messaging-sw.js registered:', this.swRegistration);
+        // Register the FCM-specific service worker with its own scope
+        // This is separate from /sw.js (which handles caching & vanilla push)
+        this.fcmSwRegistration = await navigator.serviceWorker.register(
+          '/firebase-messaging-sw.js',
+          { scope: '/' }
+        );
+        console.log('[FirebaseService] firebase-messaging-sw.js registered');
       }
 
       this.isInitialized = true;
       return true;
     } catch (err) {
-      console.warn('[FirebaseService] Initialization exception:', err);
+      console.warn('[FirebaseService] Init error:', err);
       return false;
     }
   }
 
-  /**
-   * Requests Browser Notification Permission
-   * Handles: 'granted', 'denied', 'default'
-   */
+  // ----------------------------------------------------------------
+  // Request OS permission (POST_NOTIFICATIONS on Android 13+)
+  // ----------------------------------------------------------------
   async requestNotificationPermission() {
-    if (typeof window === 'undefined' || !('Notification' in window)) {
-      console.warn('[FirebaseService] Notifications API unavailable in this browser.');
-      return 'denied';
-    }
-
-    const currentPermission = Notification.permission;
-    if (currentPermission === 'granted') return 'granted';
-    if (currentPermission === 'denied') return 'denied';
-
+    if (typeof window === 'undefined' || !('Notification' in window)) return 'denied';
+    if (Notification.permission === 'granted') return 'granted';
+    if (Notification.permission === 'denied')  return 'denied';
     try {
-      const permission = await Notification.requestPermission();
-      console.log('[FirebaseService] Notification Permission Result:', permission);
-      return permission;
+      const perm = await Notification.requestPermission();
+      console.log('[FirebaseService] Permission result:', perm);
+      return perm;
     } catch (err) {
-      console.error('[FirebaseService] Permission request error:', err);
+      console.error('[FirebaseService] Permission error:', err);
       return 'denied';
     }
   }
 
-  /**
-   * Retrieves REAL FCM Device Token using official Firebase SDK `getToken()`
-   */
+  // ----------------------------------------------------------------
+  // Get real FCM token and persist it to Supabase
+  // ----------------------------------------------------------------
   async getDeviceToken() {
     if (this.deviceToken) return this.deviceToken;
 
-    const permission = await this.requestNotificationPermission();
-    if (permission !== 'granted') {
-      console.warn('[FirebaseService] Cannot fetch FCM token without granted notification permission.');
+    const perm = await this.requestNotificationPermission();
+    if (perm !== 'granted') {
+      console.warn('[FirebaseService] Push permission not granted – token skipped.');
       return null;
     }
-
-    if (!isFirebaseConfigured()) {
-      console.log('[FirebaseService] Firebase keys missing in .env. Skipping getToken().');
-      return null;
-    }
+    if (!isFirebaseConfigured()) return null;
 
     try {
       await this.initializeFirebase();
-      if (!this.messaging) {
-        this.messaging = await getMessagingAsync();
+      if (!this.messaging) this.messaging = await getMessagingAsync();
+      if (!this.messaging) return null;
+
+      // Ensure FCM SW is registered before calling getToken
+      if (!this.fcmSwRegistration && typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+        this.fcmSwRegistration = await navigator.serviceWorker.register(
+          '/firebase-messaging-sw.js',
+          { scope: '/' }
+        );
       }
 
-      if (!this.messaging) {
-        console.warn('[FirebaseService] Firebase Messaging is not supported or failed to load.');
-        return null;
-      }
-
-      if (!this.swRegistration && typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-        this.swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-      }
-
-      const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY || firebaseConfig.vapidKey;
-
-      const tokenOptions = {
-        serviceWorkerRegistration: this.swRegistration
-      };
-      if (vapidKey) {
-        tokenOptions.vapidKey = vapidKey;
-      }
-
-      // Official Firebase SDK getToken() call
-      const token = await getToken(this.messaging, tokenOptions);
+      const token = await getToken(this.messaging, {
+        vapidKey: VAPID_KEY,
+        serviceWorkerRegistration: this.fcmSwRegistration
+      });
 
       if (token) {
         this.deviceToken = token;
-        console.log('[FirebaseService] Real FCM Token generated successfully:', token);
+        console.log('[FirebaseService] FCM token acquired successfully');
         await this.storeTokenInSupabase(token);
         return token;
-      } else {
-        console.warn('[FirebaseService] getToken() returned empty token. Verify VITE_FIREBASE_VAPID_KEY.');
-        return null;
       }
+
+      console.warn('[FirebaseService] getToken() returned empty. Check VAPID key & FCM Web Push certificate in Firebase Console → Project Settings → Cloud Messaging.');
+      return null;
     } catch (err) {
-      console.error('[FirebaseService] Error retrieving official FCM token:', err);
+      console.error('[FirebaseService] getToken error:', err);
       return null;
     }
   }
 
-  /**
-   * Refreshes Device Token automatically when required
-   */
+  /** Force-refresh the FCM token (call when token is revoked/expired) */
   async refreshDeviceToken() {
     this.deviceToken = null;
-    return await this.getDeviceToken();
+    return this.getDeviceToken();
   }
 
-  /**
-   * Saves the Real FCM Device Token in Supabase (device_tokens table)
-   * Columns: device_token, platform, member_id, updated_at
-   */
-  async storeTokenInSupabase(token, memberId = null, platform = null) {
+  // ----------------------------------------------------------------
+  // Persist FCM token in Supabase device_tokens table
+  // ----------------------------------------------------------------
+  async storeTokenInSupabase(token, memberId = null) {
     if (!isSupabaseConfigured() || !token) return;
-
     try {
-      const devicePlatform = platform || (typeof navigator !== 'undefined' ? navigator.platform : 'web');
-
-      const payload = {
-        device_token: token,
-        member_id: memberId,
-        platform: devicePlatform,
-        updated_at: new Date().toISOString()
-      };
-
-      const { data, error } = await supabase
+      const platform = this._detectPlatform();
+      const { error } = await supabase
         .from('device_tokens')
-        .upsert([payload], { onConflict: 'device_token' })
-        .select();
-
-      console.log('[FirebaseService] Real FCM Token saved in Supabase:', data);
-      if (error) console.error('[FirebaseService] Supabase device_tokens upsert error:', error);
+        .upsert(
+          [{
+            device_token: token,
+            member_id:    memberId,
+            platform,
+            updated_at:   new Date().toISOString()
+          }],
+          { onConflict: 'device_token' }
+        );
+      if (error) console.error('[FirebaseService] Supabase upsert error:', error);
+      else console.log('[FirebaseService] FCM token saved to Supabase');
     } catch (err) {
-      console.error('[FirebaseService] Exception saving FCM token in Supabase:', err);
+      console.error('[FirebaseService] storeTokenInSupabase error:', err);
     }
   }
 
-  /**
-   * Formats and dispatches a Push Notification payload via FCM / Android Native Bridge
-   */
-  async sendPushNotification(title, body, type = 'system', extraData = {}) {
-    console.log('[FirebaseService] FCM Push Payload:', {
-      to: this.deviceToken || '/topics/family_finance_hub',
-      notification: { title, body, sound: 'default', badge: '1' },
-      data: { type, timestamp: new Date().toISOString(), ...extraData }
-    });
+  _detectPlatform() {
+    if (typeof navigator === 'undefined') return 'web';
+    const ua = navigator.userAgent.toLowerCase();
+    if (ua.includes('android')) return 'android';
+    if (ua.includes('iphone') || ua.includes('ipad')) return 'ios';
+    return 'web';
+  }
 
-    if (typeof window !== 'undefined' && window.AndroidBridge) {
+  // ----------------------------------------------------------------
+  // FOREGROUND FCM MESSAGES (app is open and in foreground)
+  // Shows a native status-bar notification via SW showNotification.
+  // Using Notification API alone does NOT show in Android status bar.
+  // ----------------------------------------------------------------
+  listenForegroundMessages(onMessageCallback) {
+    if (!isFirebaseConfigured()) return;
+
+    const attach = (msg) => {
+      if (this._unsubscribeOnMessage) return;
+      this._unsubscribeOnMessage = onMessage(msg, async (payload) => {
+        console.log('[FirebaseService] Foreground FCM received:', payload);
+
+        const title = payload.notification?.title || payload.data?.title || 'Family Finance';
+        const body  = payload.notification?.body  || payload.data?.body  || 'New financial activity.';
+        const url   = payload.data?.url || '/';
+        const type  = payload.data?.type || 'system';
+
+        // Use SW showNotification – this IS visible in Android status bar
+        await pushNotificationService.sendLocalPush(title, body, type, url);
+
+        if (onMessageCallback) onMessageCallback(payload);
+      });
+    };
+
+    if (this.messaging) {
+      attach(this.messaging);
+    } else {
+      getMessagingAsync().then((msg) => {
+        if (msg) { this.messaging = msg; attach(msg); }
+      });
+    }
+  }
+
+  /** Remove foreground listener */
+  stopForegroundMessages() {
+    if (this._unsubscribeOnMessage) {
+      this._unsubscribeOnMessage();
+      this._unsubscribeOnMessage = null;
+    }
+  }
+
+  // ----------------------------------------------------------------
+  // Update Android app badge with unread notification count
+  // Uses navigator.setAppBadge (supported in Chrome/Android PWA & TWA)
+  // ----------------------------------------------------------------
+  async updateBadge(unreadCount) {
+    if ('setAppBadge' in navigator) {
       try {
-        window.AndroidBridge.postMessage(JSON.stringify({ title, body, type }));
+        if (unreadCount > 0) {
+          await navigator.setAppBadge(unreadCount);
+        } else {
+          await navigator.clearAppBadge();
+        }
       } catch (e) {
-        console.warn('[FirebaseService] AndroidBridge native dispatch notice:', e);
+        // Not all platforms support this
       }
     }
   }
 
-  /**
-   * Listens for Foreground Messages using official `onMessage()`
-   */
-  listenForegroundMessages(onMessageCallback) {
-    if (!this.messaging) {
-      getMessagingAsync().then((msg) => {
-        if (msg) {
-          this.messaging = msg;
-          this._attachOnMessage(onMessageCallback);
-        }
-      });
-    } else {
-      this._attachOnMessage(onMessageCallback);
-    }
+  // Compatibility shim – kept for NotificationService import
+  async sendPushNotification(title, body, type = 'system') {
+    console.log('[FirebaseService] Push delivery handled by firebase-messaging-sw.js via FCM backend.');
   }
 
-  _attachOnMessage(callback) {
-    if (!this.messaging) return;
-    try {
-      onMessage(this.messaging, (payload) => {
-        console.log('[FirebaseService] Foreground FCM Message received:', payload);
-        
-        // Show Browser Notification if app is in foreground
-        const title = payload.notification?.title || payload.data?.title || 'Family Finance';
-        const body = payload.notification?.body || payload.data?.body || 'New financial activity.';
-
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification(title, {
-            body,
-            icon: '/icons/icon-192x192.png'
-          });
-        }
-
-        if (callback) callback(payload);
-      });
-    } catch (e) {
-      console.warn('[FirebaseService] onMessage attachment notice:', e);
-    }
-  }
-
-  /**
-   * Subscribes to Background Messages via Service Worker message channel
-   */
+  // Background relay (SW → main thread)
   listenBackgroundMessages(callback) {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        if (callback && event.data && event.data.isBackground) {
-          callback(event.data);
-        }
-      });
-    }
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (callback && event.data?.isBackground) callback(event.data);
+    });
   }
 }
 

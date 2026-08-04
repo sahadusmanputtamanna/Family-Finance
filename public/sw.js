@@ -122,12 +122,12 @@ self.addEventListener('push', (event) => {
   const options = {
     body: data.body || data.message || 'Activity updated.',
     icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-192x192.png',
-    vibrate: [100, 50, 100],
+    badge: '/icons/icon-72x72.png',
+    vibrate: [200, 100, 200],
     data: { url: data.url || '/' },
     actions: [
-      { action: 'open', title: 'Open App' },
-      { action: 'close', title: 'Dismiss' }
+      { action: 'open',    title: 'Open App' },
+      { action: 'dismiss', title: 'Dismiss' }
     ]
   };
 
@@ -139,7 +139,7 @@ self.addEventListener('push', (event) => {
 // Notification Click Event
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  if (event.action === 'close') return;
+  if (event.action === 'dismiss') return;
 
   const targetUrl = (event.notification.data && event.notification.data.url) ? event.notification.data.url : '/';
 

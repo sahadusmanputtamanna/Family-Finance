@@ -1,11 +1,24 @@
 {
   "rewrites": [
     {
-      "source": "/((?!assets/|icons/|favicon|manifest.json|sw.js|firebase-messaging-sw.js).*)",
+      "source": "/((?!assets/|icons/|favicon|manifest.json|sw.js|firebase-messaging-sw.js|\\.well-known).*)",
       "destination": "/index.html"
     }
   ],
   "headers": [
+    {
+      "source": "/\\.well-known/assetlinks.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
     {
       "source": "/sw.js",
       "headers": [
