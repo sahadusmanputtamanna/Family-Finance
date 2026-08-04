@@ -302,7 +302,15 @@ export const AppProvider = ({ children }) => {
       });
     });
 
-    return merged.sort((a, b) => new Date(b.date || b.created_at) - new Date(a.date || a.created_at));
+    return merged.sort((a, b) => {
+      const dateA = new Date(a.date || a.created_at || 0).getTime();
+      const dateB = new Date(b.date || b.created_at || 0).getTime();
+      if (dateB !== dateA) return dateB - dateA;
+
+      const createdA = new Date(a.created_at || a.date || 0).getTime();
+      const createdB = new Date(b.created_at || b.date || 0).getTime();
+      return createdB - createdA;
+    });
   }, [income, expenses, familyMembers]);
 
   const activeFamilyMembers = useMemo(() => {
