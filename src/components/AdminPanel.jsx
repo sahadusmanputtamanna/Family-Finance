@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
 import { formatIndianNumber, parseRawNumericValue } from '../utils/numberFormat';
+import { formatDisplayDate } from '../utils/dateFormat';
 import { motion } from 'framer-motion';
 
 // --- ADMIN PRIMARY LOGIN SCREEN ---
@@ -798,7 +799,7 @@ export const AdminPanel = () => {
                       </span>
                     )}
                   </h4>
-                  <p className="text-xs text-[#6B7280]">{t.notes || 'Income record'} &bull; {t.date}</p>
+                  <p className="text-xs text-[#6B7280]">{t.notes || 'Income record'} &bull; {formatDisplayDate(t.date)}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-base font-extrabold text-[#22C55E]">
@@ -845,7 +846,7 @@ export const AdminPanel = () => {
                       </span>
                     )}
                   </h4>
-                  <p className="text-xs text-[#6B7280]">{t.notes || 'Expense payment'} &bull; {t.date}</p>
+                  <p className="text-xs text-[#6B7280]">{t.notes || 'Expense payment'} &bull; {formatDisplayDate(t.date)}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   {t.attachmentUrl && (
@@ -948,7 +949,7 @@ export const AdminPanel = () => {
                         </span>
                       )}
                     </h4>
-                    <p className="text-xs text-[#6B7280]">{t.notes || 'Record'} &bull; {t.date}</p>
+                    <p className="text-xs text-[#6B7280]">{t.notes || 'Record'} &bull; {formatDisplayDate(t.date)}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     {t.attachmentUrl && (

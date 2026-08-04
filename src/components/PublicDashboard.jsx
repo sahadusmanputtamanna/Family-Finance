@@ -16,6 +16,7 @@ import {
   ChevronRight as NextIcon
 } from 'lucide-react';
 import { formatIndianNumber } from '../utils/numberFormat';
+import { formatDisplayDate } from '../utils/dateFormat';
 import { motion } from 'framer-motion';
 
 export const PublicDashboard = ({ onNavigateTab, onOpenAdd }) => {
@@ -70,13 +71,15 @@ export const PublicDashboard = ({ onNavigateTab, onOpenAdd }) => {
 
     return list.filter(item => {
       const q = searchQuery.toLowerCase();
+      const formattedDate = formatDisplayDate(item.date).toLowerCase();
       const matchesSearch =
         !searchQuery ||
         (item.source || '').toLowerCase().includes(q) ||
         (item.category || item.expense_name || '').toLowerCase().includes(q) ||
         (item.member || '').toLowerCase().includes(q) ||
         (item.notes || item.note || '').toLowerCase().includes(q) ||
-        item.amount.toString().includes(q);
+        item.amount.toString().includes(q) ||
+        formattedDate.includes(q);
 
       const matchesMember = memberFilter === 'all' || item.member === memberFilter;
 
@@ -200,7 +203,7 @@ export const PublicDashboard = ({ onNavigateTab, onOpenAdd }) => {
                         )}
                       </div>
                       <span className="text-[11px] text-[#6B7280] block mt-0.5">
-                        {t.date} {t.notes || t.note ? `• ${t.notes || t.note}` : ''}
+                        {formatDisplayDate(t.date)} {t.notes || t.note ? `• ${t.notes || t.note}` : ''}
                       </span>
                     </div>
                   </div>
@@ -345,7 +348,7 @@ export const PublicDashboard = ({ onNavigateTab, onOpenAdd }) => {
         )}
       </motion.div>
 
-      {/* Recent Transactions Section (Strictly Displays ONLY Latest 5 Transactions) */}
+      {/* Recent Transactions Section */}
       <div className="bg-[#FFFFFF] rounded-[24px] p-6 border border-[#E5E7EB] shadow-premium space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-extrabold text-base text-[#111827]">
@@ -398,7 +401,7 @@ export const PublicDashboard = ({ onNavigateTab, onOpenAdd }) => {
                         )}
                       </div>
                       <span className="text-[11px] text-[#6B7280] block mt-0.5">
-                        {t.date}
+                        {formatDisplayDate(t.date)}
                       </span>
                     </div>
                   </div>

@@ -13,6 +13,7 @@ import {
   PieChart
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatDisplayDate } from '../utils/dateFormat';
 
 export function formatRelativeTime(dateString) {
   if (!dateString) return 'Just now';
@@ -24,7 +25,7 @@ export function formatRelativeTime(dateString) {
   if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min ago`;
   if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hr ago`;
   if (diffInSeconds < 172800) return 'Yesterday';
-  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  return formatDisplayDate(dateString);
 }
 
 export const NotificationDropdown = () => {
@@ -207,7 +208,7 @@ export const NotificationDropdown = () => {
               )}
             </div>
 
-            {/* Simple Footer Layout (Keep ONLY View All action) */}
+            {/* Simple Footer Layout */}
             <div className="px-4 py-2.5 bg-[#F8FAFC] border-t border-[#E5E7EB] flex items-center justify-between text-xs font-bold">
               <button
                 onClick={() => {

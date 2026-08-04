@@ -215,7 +215,7 @@ class FirebaseService {
         if ('Notification' in window && Notification.permission === 'granted') {
           new Notification(title, {
             body,
-            icon: '/icons/icon-192x192.svg'
+            icon: '/icons/icon-192x192.png'
           });
         }
 

@@ -9,6 +9,7 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { formatDisplayDate } from '../utils/dateFormat';
 
 export const TransactionCard = ({ transaction }) => {
   const {
@@ -72,7 +73,7 @@ export const TransactionCard = ({ transaction }) => {
             <div className="flex items-center gap-3 text-[11px] text-[#6B7280] mt-1">
               <span className="flex items-center gap-1">
                 <Calendar className="w-3 h-3 text-[#6B7280]" />
-                {transaction.date}
+                {formatDisplayDate(transaction.date)}
               </span>
             </div>
           </div>

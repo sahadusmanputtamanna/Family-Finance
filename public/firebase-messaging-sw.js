@@ -1,6 +1,6 @@
 // ========================================================
 // FIREBASE MESSAGING SERVICE WORKER (public/firebase-messaging-sw.js)
-// Handles background messaging for PWA and Android devices
+// Handles background messaging for PWA and Android devices using PNG icons
 // ========================================================
 
 importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
@@ -25,8 +25,8 @@ try {
     const notificationTitle = payload.notification?.title || payload.data?.title || 'Family Finance';
     const notificationOptions = {
       body: payload.notification?.body || payload.data?.body || 'New financial activity.',
-      icon: '/icons/icon-192x192.svg',
-      badge: '/icons/icon-192x192.svg',
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/icon-192x192.png',
       vibrate: [100, 50, 100],
       data: {
         url: payload.data?.url || '/'

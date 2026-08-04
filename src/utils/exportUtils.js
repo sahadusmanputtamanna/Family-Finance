@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import { formatDisplayDate } from './dateFormat';
 
 export const exportToPDF = (transactions = [], familyCurrency = '₹') => {
   try {
@@ -13,11 +14,11 @@ export const exportToPDF = (transactions = [], familyCurrency = '₹') => {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(100);
-    doc.text(`Generated on: ${new Date().toLocaleDateString('en-IN')}`, 14, 28);
+    doc.text(`Generated on: ${formatDisplayDate(new Date())}`, 14, 28);
     doc.text(`Total Records: ${transactions.length}`, 14, 34);
 
     const tableRows = transactions.map(t => [
-      t.date || '',
+      formatDisplayDate(t.date),
       t.type === 'income' ? 'Income' : 'Expense',
       t.type === 'income' ? t.source : t.category,
       t.member || 'N/A',
@@ -42,7 +43,7 @@ export const exportToPDF = (transactions = [], familyCurrency = '₹') => {
 export const exportToExcel = (transactions = []) => {
   try {
     const data = transactions.map(t => ({
-      Date: t.date,
+      Date: formatDisplayDate(t.date),
       Type: t.type.toUpperCase(),
       CategoryOrSource: t.type === 'income' ? t.source : t.category,
       FamilyMember: t.member || 'N/A',
@@ -64,7 +65,7 @@ export const exportToCSV = (transactions = []) => {
   try {
     const headers = ['Date,Type,Category,FamilyMember,Amount,Notes'];
     const rows = transactions.map(t => 
-      `"${t.date}","${t.type}","${t.type === 'income' ? t.source : t.category}","${t.member || 'N/A'}",${t.amount},"${(t.notes || '').replace(/"/g, '""')}"`
+      `"${formatDisplayDate(t.date)}","${t.type}","${t.type === 'income' ? t.source : t.category}","${t.member || 'N/A'}",${t.amount},"${(t.notes || '').replace(/"/g, '""')}"`
     );
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers, ...rows].join('\n');
     const encodedUri = encodeURI(csvContent);

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { CheckCircle, Clock, Plus, Trash2, Calendar, Edit2, Eye, Repeat, RotateCcw } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { formatDisplayDate } from '../utils/dateFormat';
 
 export const BillsView = () => {
   const {
@@ -139,7 +140,7 @@ export const BillsView = () => {
                     <div className="flex items-center gap-2 text-xs text-[#6B7280] mt-0.5">
                       <span className="flex items-center gap-1 text-[#F59E0B] font-semibold">
                         <Calendar className="w-3.5 h-3.5" />
-                        Due: {bill.dueDate}
+                        Due: {formatDisplayDate(bill.dueDate)}
                       </span>
                     </div>
                   </div>
@@ -250,83 +251,57 @@ export const BillsView = () => {
               {editingBill ? 'Edit Bill Reminder' : 'Add Bill Reminder'}
             </h3>
 
-            <form onSubmit={handleFormSubmit} className="space-y-3">
+            <form onSubmit={handleFormSubmit} className="space-y-3 text-left">
               <div>
-                <label className="block text-xs font-semibold text-[#6B7280] mb-1">Bill Name</label>
+                <label className="block text-xs font-semibold text-[#6B7280] mb-1">Bill Name *</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Fiber Broadband Unlimited"
+                  placeholder="e.g. Electricity Bill"
                   value={formBill.name}
                   onChange={e => setFormBill({ ...formBill, name: e.target.value })}
-                  className="w-full h-[44px] px-3 bg-[#FFFFFF] border border-[#D1D5DB] rounded-[14px] text-xs font-bold text-[#111827]"
+                  className="w-full h-[44px] px-3 bg-[#FFFFFF] border border-[#D1D5DB] rounded-[14px] text-xs font-semibold text-[#111827]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[#6B7280] mb-1">Amount ({familyInfo.currency})</label>
+                  <label className="block text-xs font-semibold text-[#6B7280] mb-1">Amount (₹) *</label>
                   <input
                     type="number"
                     required
-                    placeholder="999"
+                    placeholder="2500"
                     value={formBill.amount}
                     onChange={e => setFormBill({ ...formBill, amount: e.target.value })}
-                    className="w-full h-[44px] px-3 bg-[#FFFFFF] border border-[#D1D5DB] rounded-[14px] text-xs font-bold text-[#111827]"
+                    className="w-full h-[44px] px-3 bg-[#FFFFFF] border border-[#D1D5DB] rounded-[14px] text-xs font-semibold text-[#111827]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#6B7280] mb-1">Due Date</label>
+                  <label className="block text-xs font-semibold text-[#6B7280] mb-1">Due Date *</label>
                   <input
                     type="date"
                     required
                     value={formBill.dueDate}
                     onChange={e => setFormBill({ ...formBill, dueDate: e.target.value })}
-                    className="w-full h-[44px] px-3 bg-[#FFFFFF] border border-[#D1D5DB] rounded-[14px] text-xs font-bold text-[#111827]"
+                    className="w-full h-[44px] px-3 bg-[#FFFFFF] border border-[#D1D5DB] rounded-[14px] text-xs font-semibold text-[#111827]"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-[#6B7280] mb-1">Recurring Period</label>
-                  <select
-                    value={formBill.recurring}
-                    onChange={e => setFormBill({ ...formBill, recurring: e.target.value })}
-                    className="w-full h-[44px] px-3 bg-[#FFFFFF] border border-[#D1D5DB] rounded-[14px] text-xs font-bold text-[#111827]"
-                  >
-                    <option value="Monthly">Monthly</option>
-                    <option value="Yearly">Yearly</option>
-                    <option value="Weekly">Weekly</option>
-                    <option value="One-time">One-time</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#6B7280] mb-1">Alert Days Before</label>
-                  <input
-                    type="number"
-                    value={formBill.reminderDays}
-                    onChange={e => setFormBill({ ...formBill, reminderDays: e.target.value })}
-                    className="w-full h-[44px] px-3 bg-[#FFFFFF] border border-[#D1D5DB] rounded-[14px] text-xs font-bold text-[#111827]"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#E5E7EB]">
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="flex-1 h-[44px] rounded-[14px] bg-[#F8FAFC] border border-[#E5E7EB] text-[#111827] font-bold text-xs"
+                  className="px-4 py-2 rounded-xl bg-[#F8FAFC] border border-[#E5E7EB] text-xs font-bold text-[#111827]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 h-[44px] rounded-[14px] bg-[#2E7D32] hover:bg-[#256D27] text-white font-bold text-xs"
+                  className="px-5 py-2 rounded-xl bg-[#2E7D32] text-white text-xs font-bold hover:bg-[#256D27]"
                 >
-                  Save Bill
+                  {editingBill ? 'Save Changes' : 'Add Bill'}
                 </button>
               </div>
             </form>
