@@ -1,22 +1,19 @@
 // ========================================================
-// NOTIFICATION SERVICE: Simple Unified Architecture Dispatcher
-// Integrates RealtimeService, PushNotificationService & FirebaseService
+// NOTIFICATION SERVICE: Website In-App Notifications
+// Writes notifications directly to Supabase DB (syncs across website sessions)
 // ========================================================
 
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
-import { pushNotificationService } from './PushNotificationService';
-import { firebaseService } from './FirebaseService';
 
 class NotificationService {
 
   /**
-   * Central Dispatcher Method
-   * Database Event -> Supabase Realtime -> NotificationService -> UI Update -> FCM / PWA Push
+   * Central Dispatcher Method for Website In-App Notifications
    */
   async dispatchNotification(title, body, type, _settings = {}, loadNotificationsCallback = null) {
-    console.log(`[NotificationService] Unified Dispatch '${type}':`, { title, body });
+    console.log(`[NotificationService] Website Dispatch '${type}':`, { title, body });
 
-    // 1. Write to Supabase DB (Triggers Supabase Realtime live sync across devices)
+    // Write to Supabase DB (Triggers Supabase Realtime live sync across browser sessions)
     if (isSupabaseConfigured()) {
       try {
         const mappedType = (type === 'edit' || type === 'delete' || type === 'auth' || type === 'settings') ? 'system' : type;
@@ -42,20 +39,6 @@ class NotificationService {
       } catch (err) {
         console.error('[NotificationService] DB Insert Exception:', err);
       }
-    }
-
-    // 2. Dispatch to PWA Web Push (PushNotificationService)
-    try {
-      await pushNotificationService.sendLocalPush(title, body, type);
-    } catch (err) {
-      console.warn('[NotificationService] Web Push notice:', err);
-    }
-
-    // 3. Dispatch to Android Play Store FCM (FirebaseService)
-    try {
-      await firebaseService.sendPushNotification(title, body, type);
-    } catch (err) {
-      console.warn('[NotificationService] FCM notice:', err);
     }
   }
 

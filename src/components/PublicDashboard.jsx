@@ -26,8 +26,6 @@ export const PublicDashboard = ({ onNavigateTab, onOpenAdd }) => {
     totalIncome,
     totalExpense,
     transactions,
-    income,
-    expenses,
     familyMembers,
     setReceiptModalUrl,
     setReceiptModalTitle
@@ -114,10 +112,10 @@ export const PublicDashboard = ({ onNavigateTab, onOpenAdd }) => {
     return (
       <div className="space-y-6 pb-20 md:pb-8 max-w-2xl mx-auto">
         {/* Header & Back Button */}
-        <div className="flex items-center justify-between bg-[#FFFFFF] rounded-[20px] p-4 border border-[#E5E7EB] shadow-premium">
+        <div className="flex items-center justify-between bg-[#FFFFFF] rounded-[20px] p-4 border border-[#E5E7EB] shadow-xs">
           <button
             onClick={() => handleTabSwitch('dashboard')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F8FAFC] border border-[#E5E7EB] text-[#2E7D32] hover:bg-emerald-50 text-xs font-bold transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100 text-[#2E7D32] hover:bg-emerald-100 text-xs font-bold transition"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Dashboard</span>
@@ -129,7 +127,7 @@ export const PublicDashboard = ({ onNavigateTab, onOpenAdd }) => {
         </div>
 
         {/* Search & Filter Controls */}
-        <div className="bg-[#FFFFFF] rounded-[20px] p-4 border border-[#E5E7EB] shadow-premium space-y-3">
+        <div className="bg-[#FFFFFF] rounded-[20px] p-4 border border-[#E5E7EB] shadow-xs space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Search Input */}
             <div className="relative flex items-center">
@@ -167,7 +165,7 @@ export const PublicDashboard = ({ onNavigateTab, onOpenAdd }) => {
         </div>
 
         {/* Paginated List */}
-        <div className="bg-[#FFFFFF] rounded-[24px] p-5 border border-[#E5E7EB] shadow-premium space-y-3">
+        <div className="bg-[#FFFFFF] rounded-[24px] p-5 border border-[#E5E7EB] shadow-xs space-y-3">
           {paginatedList.length === 0 ? (
             <div className="py-12 text-center text-xs font-bold text-[#6B7280]">
               No records found matching your filters.
@@ -180,15 +178,19 @@ export const PublicDashboard = ({ onNavigateTab, onOpenAdd }) => {
               return (
                 <div
                   key={t.id}
-                  className="p-3.5 rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] flex items-center justify-between gap-3 hover:bg-white transition"
+                  className={`p-3.5 rounded-2xl border transition flex items-center justify-between gap-3 ${
+                    isInc
+                      ? 'bg-[#F0FDF4] border-[#BBF7D0] hover:bg-[#DCFCE7]/50'
+                      : 'bg-[#FEF2F2] border-[#FECACA] hover:bg-[#FEE2E2]/50'
+                  }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div
                       className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
-                        isInc ? 'bg-emerald-100 text-[#2E7D32]' : 'bg-rose-100 text-[#EF4444]'
+                        isInc ? 'bg-[#DCFCE7] text-[#22C55E]' : 'bg-[#FEE2E2] text-[#EF4444]'
                       }`}
                     >
-                      {isInc ? '⬇' : '⬆'}
+                      {isInc ? <ArrowDownRight className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
                     </div>
 
                     <div className="min-w-0">
@@ -216,7 +218,7 @@ export const PublicDashboard = ({ onNavigateTab, onOpenAdd }) => {
                     {receiptUrl && (
                       <button
                         onClick={() => handleOpenReceipt(t)}
-                        className="p-1 text-[#2E7D32] hover:bg-emerald-50 rounded"
+                        className="p-1 text-[#2E7D32] hover:bg-emerald-50 rounded transition"
                         title="View Receipt"
                       >
                         <Paperclip className="w-3.5 h-3.5" />
@@ -234,7 +236,7 @@ export const PublicDashboard = ({ onNavigateTab, onOpenAdd }) => {
               <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                className="px-3 py-1.5 rounded-xl bg-[#F8FAFC] border border-[#E5E7EB] text-[#111827] disabled:opacity-40 flex items-center gap-1"
+                className="px-3 py-1.5 rounded-xl bg-[#F8FAFC] border border-[#E5E7EB] text-[#111827] disabled:opacity-40 flex items-center gap-1 hover:bg-slate-100 transition"
               >
                 <PrevIcon className="w-3.5 h-3.5" /> Prev
               </button>
@@ -246,7 +248,7 @@ export const PublicDashboard = ({ onNavigateTab, onOpenAdd }) => {
               <button
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                className="px-3 py-1.5 rounded-xl bg-[#F8FAFC] border border-[#E5E7EB] text-[#111827] disabled:opacity-40 flex items-center gap-1"
+                className="px-3 py-1.5 rounded-xl bg-[#F8FAFC] border border-[#E5E7EB] text-[#111827] disabled:opacity-40 flex items-center gap-1 hover:bg-slate-100 transition"
               >
                 Next <NextIcon className="w-3.5 h-3.5" />
               </button>
@@ -260,96 +262,113 @@ export const PublicDashboard = ({ onNavigateTab, onOpenAdd }) => {
   // ----------------------------------------------------
   // MAIN DASHBOARD OVERVIEW VIEW
   // ----------------------------------------------------
+  const isBalancePositive = currentBalance >= 0;
+
   return (
-    <div className="space-y-6 pb-20 md:pb-8 max-w-2xl mx-auto">
+    <div className="space-y-5 pb-20 md:pb-8 max-w-2xl mx-auto">
       
-      {/* Hero Balance Card */}
+      {/* Large Hero Overview Card */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-[#FFFFFF] rounded-[24px] p-6 sm:p-8 border border-[#E5E7EB] shadow-premium space-y-6"
+        className="bg-[#FFFFFF] rounded-[24px] p-5 sm:p-6 border border-[#E5E7EB] shadow-xs space-y-4"
       >
         <div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#111827] tracking-tight">
+          <h2 className="text-xl sm:text-2xl font-extrabold text-[#111827] tracking-tight">
             Family Finance Overview 🏡
           </h2>
-          <p className="text-xs text-[#6B7280] mt-1.5 leading-relaxed">
+          <p className="text-[11px] text-[#6B7280] mt-1 leading-relaxed">
             View your household income, expenses, balance, and recent transactions in one simple dashboard.
           </p>
         </div>
 
-        <div className="space-y-1">
-          <span className="text-xs font-bold text-[#6B7280] uppercase tracking-wider">
+        {/* 1. BALANCE CARD (Compact, Black amount, Muted Gray subtitle) */}
+        <div className="bg-[#FFFFFF] rounded-[18px] p-4 border border-[#E5E7EB] shadow-xs space-y-1">
+          <span className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
             Current Balance
           </span>
-          <div className="text-4xl font-black text-[#111827] tracking-tight">
+          <div className="text-2xl sm:text-3xl font-black text-[#111827] tracking-tight">
             {familySettings.currency}{formatIndianNumber(currentBalance)}
           </div>
+          <span className="text-[10px] font-semibold text-[#6B7280] block">
+            Auto-calculated (Income − Expense)
+          </span>
         </div>
 
-        {/* Income Card & Expense Card Grid with View All → Buttons */}
-        <div className="grid grid-cols-2 gap-4 p-4 rounded-2xl bg-[#F8FAFC] border border-[#E5E7EB]">
-          {/* Income Card */}
-          <div className="space-y-1">
+        {/* 2. INCOME & EXPENSE CARDS GRID (Compact 30-40% reduced height) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          {/* INCOME CARD */}
+          <div className="bg-[#F0FDF4] rounded-[18px] p-4 border border-[#BBF7D0] shadow-xs space-y-1.5 transition hover:shadow-md">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#22C55E] flex items-center gap-1">
-                <TrendingUp className="w-4 h-4" /> ↑ Income
-              </span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-7 h-7 rounded-lg bg-[#DCFCE7] text-[#22C55E] flex items-center justify-center font-bold">
+                  <TrendingUp className="w-3.5 h-3.5" />
+                </div>
+                <span className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
+                  Total Income
+                </span>
+              </div>
               <button
                 onClick={() => handleTabSwitch('income')}
-                className="text-[11px] font-extrabold text-[#2E7D32] hover:underline flex items-center gap-0.5"
+                className="px-2 py-0.5 rounded-md bg-white border border-[#BBF7D0] text-[#2E7D32] hover:bg-emerald-100 text-[10px] font-extrabold transition flex items-center gap-0.5"
                 title="View all income records"
               >
                 <span>View All</span>
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-3 h-3" />
               </button>
             </div>
-            <div className="text-xl font-extrabold text-[#111827]">
+            <div className="text-2xl font-black text-[#22C55E]">
               {familySettings.currency}{formatIndianNumber(totalIncome)}
             </div>
           </div>
 
-          {/* Expense Card */}
-          <div className="space-y-1 border-l border-[#E5E7EB] pl-4">
+          {/* EXPENSE CARD */}
+          <div className="bg-[#FEF2F2] rounded-[18px] p-4 border border-[#FECACA] shadow-xs space-y-1.5 transition hover:shadow-md">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#EF4444] flex items-center gap-1">
-                <TrendingDown className="w-4 h-4" /> ↓ Expense
-              </span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-7 h-7 rounded-lg bg-[#FEE2E2] text-[#EF4444] flex items-center justify-center font-bold">
+                  <TrendingDown className="w-3.5 h-3.5" />
+                </div>
+                <span className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
+                  Total Expenses
+                </span>
+              </div>
               <button
                 onClick={() => handleTabSwitch('expense')}
-                className="text-[11px] font-extrabold text-[#EF4444] hover:underline flex items-center gap-0.5"
+                className="px-2 py-0.5 rounded-md bg-white border border-[#FECACA] text-[#EF4444] hover:bg-rose-100 text-[10px] font-extrabold transition flex items-center gap-0.5"
                 title="View all expense records"
               >
                 <span>View All</span>
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-3 h-3" />
               </button>
             </div>
-            <div className="text-xl font-extrabold text-[#111827]">
+            <div className="text-2xl font-black text-[#EF4444]">
               {familySettings.currency}{formatIndianNumber(totalExpense)}
             </div>
           </div>
         </div>
 
+        {/* ACTION BUTTONS */}
         {onOpenAdd && (
-          <div className="grid grid-cols-2 gap-3 pt-1">
+          <div className="grid grid-cols-2 gap-3 pt-0.5">
             <button
               onClick={() => onOpenAdd('income')}
-              className="h-[44px] rounded-[14px] bg-[#2E7D32] hover:bg-[#256D27] text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5"
+              className="h-[40px] rounded-[12px] bg-[#2E7D32] hover:bg-[#256D27] text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5"
             >
-              + Income
+              + Add Income
             </button>
             <button
               onClick={() => onOpenAdd('expense')}
-              className="h-[44px] rounded-[14px] bg-white border border-[#2E7D32] text-[#2E7D32] hover:bg-emerald-50 font-bold text-xs transition flex items-center justify-center gap-1.5"
+              className="h-[44px] rounded-[14px] bg-[#EF4444] hover:bg-[#DC2626] text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5"
             >
-              + Expense
+              + Add Expense
             </button>
           </div>
         )}
       </motion.div>
 
       {/* Recent Transactions Section */}
-      <div className="bg-[#FFFFFF] rounded-[24px] p-6 border border-[#E5E7EB] shadow-premium space-y-4">
+      <div className="bg-[#FFFFFF] rounded-[24px] p-6 border border-[#E5E7EB] shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-extrabold text-base text-[#111827]">
             Recent Transactions
@@ -377,17 +396,21 @@ export const PublicDashboard = ({ onNavigateTab, onOpenAdd }) => {
               return (
                 <div
                   key={t.id}
-                  className="p-3.5 rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] flex items-center justify-between gap-3 hover:bg-white transition"
+                  className={`p-3.5 rounded-2xl border transition flex items-center justify-between gap-3 ${
+                    isIncome
+                      ? 'bg-[#F0FDF4] border-[#BBF7D0] hover:bg-[#DCFCE7]/50'
+                      : 'bg-[#FEF2F2] border-[#FECACA] hover:bg-[#FEE2E2]/50'
+                  }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div
                       className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
                         isIncome
-                          ? 'bg-emerald-100 text-[#2E7D32]'
-                          : 'bg-rose-100 text-[#EF4444]'
+                          ? 'bg-[#DCFCE7] text-[#22C55E]'
+                          : 'bg-[#FEE2E2] text-[#EF4444]'
                       }`}
                     >
-                      {isIncome ? '⬇' : '⬆'}
+                      {isIncome ? <ArrowDownRight className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
@@ -418,7 +441,7 @@ export const PublicDashboard = ({ onNavigateTab, onOpenAdd }) => {
                     {receiptUrl && (
                       <button
                         onClick={() => handleOpenReceipt(t)}
-                        className="p-1 text-[#2E7D32] hover:bg-emerald-50 rounded"
+                        className="p-1 text-[#2E7D32] hover:bg-emerald-50 rounded transition"
                         title="View Receipt"
                       >
                         <Paperclip className="w-3.5 h-3.5" />
@@ -432,8 +455,8 @@ export const PublicDashboard = ({ onNavigateTab, onOpenAdd }) => {
         </div>
       </div>
 
-      {/* Monthly Summary */}
-      <div className="bg-[#FFFFFF] rounded-[24px] p-6 border border-[#E5E7EB] shadow-premium space-y-4">
+      {/* Monthly Summary Card */}
+      <div className="bg-[#FFFFFF] rounded-[24px] p-6 border border-[#E5E7EB] shadow-xs space-y-4">
         <h3 className="font-extrabold text-base text-[#111827]">
           Monthly Summary
         </h3>
@@ -441,12 +464,12 @@ export const PublicDashboard = ({ onNavigateTab, onOpenAdd }) => {
         <div className="space-y-4">
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs font-bold">
-              <span className="text-[#2E7D32]">Income</span>
+              <span className="text-[#22C55E] font-extrabold">Income</span>
               <span className="text-[#111827]">{familySettings.currency}{formatIndianNumber(totalIncome)}</span>
             </div>
-            <div className="h-3.5 w-full bg-[#F8FAFC] border border-[#E5E7EB] rounded-full overflow-hidden">
+            <div className="h-3.5 w-full bg-[#F0FDF4] border border-[#BBF7D0] rounded-full overflow-hidden">
               <div
-                className="h-full bg-[#2E7D32] rounded-full transition-all duration-500"
+                className="h-full bg-[#22C55E] rounded-full transition-all duration-500"
                 style={{ width: `${incomePercent}%` }}
               />
             </div>
@@ -454,10 +477,10 @@ export const PublicDashboard = ({ onNavigateTab, onOpenAdd }) => {
 
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs font-bold">
-              <span className="text-[#EF4444]">Expense</span>
+              <span className="text-[#EF4444] font-extrabold">Expense</span>
               <span className="text-[#111827]">{familySettings.currency}{formatIndianNumber(totalExpense)}</span>
             </div>
-            <div className="h-3.5 w-full bg-[#F8FAFC] border border-[#E5E7EB] rounded-full overflow-hidden">
+            <div className="h-3.5 w-full bg-[#FEF2F2] border border-[#FECACA] rounded-full overflow-hidden">
               <div
                 className="h-full bg-[#EF4444] rounded-full transition-all duration-500"
                 style={{ width: `${expensePercent}%` }}

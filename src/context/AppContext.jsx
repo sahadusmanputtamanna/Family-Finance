@@ -3,8 +3,6 @@ import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { formatIndianNumber } from '../utils/numberFormat';
 import { notificationService } from '../services/NotificationService';
 import { realtimeService } from '../services/RealtimeService';
-import { pushNotificationService } from '../services/PushNotificationService';
-import { firebaseService } from '../services/FirebaseService';
 
 const AppContext = createContext();
 
@@ -390,9 +388,6 @@ export const AppProvider = ({ children }) => {
       const list = data || [];
       console.log(`Notifications loaded: ${list.length}`);
       setNotifications(list);
-      // Sync Android app badge with unread count
-      const unreadCount = list.filter(n => !n.is_read).length;
-      firebaseService.updateBadge(unreadCount);
       return list;
     } catch (err) {
       console.error('loadNotifications exception:', err);
@@ -474,7 +469,6 @@ export const AppProvider = ({ children }) => {
   const markAllNotificationsAsRead = async () => {
     if (!isSupabaseConfigured()) {
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-      firebaseService.updateBadge(0);
       return;
     }
     try {
@@ -485,7 +479,6 @@ export const AppProvider = ({ children }) => {
         .select();
 
       if (error) console.error(error);
-      firebaseService.updateBadge(0);
       await loadNotifications();
     } catch (err) {
       console.error("Mark All Read Exception:", err);
@@ -542,7 +535,7 @@ export const AppProvider = ({ children }) => {
       fetchSupabaseData(false);
     }, 30000);
 
-    // Silent Realtime Channel Callback (runs silently without splash screen)
+    // Silent Realtime Channel Callback
     const channel = realtimeService.subscribeToAllTables(
       (tableName, payload) => {
         console.log('[Realtime Sync] Change detected on:', tableName);
@@ -553,16 +546,6 @@ export const AppProvider = ({ children }) => {
         loadNotifications();
       }
     );
-
-    // Initialize Firebase, get FCM token, and start listening for foreground messages
-    firebaseService.initializeFirebase().then(async () => {
-      await firebaseService.getDeviceToken();
-      // Listen for foreground FCM messages (shows native status bar notification)
-      firebaseService.listenForegroundMessages((payload) => {
-        // Reload notifications panel when a new FCM message arrives
-        loadNotifications();
-      });
-    });
 
     return () => {
       clearInterval(pollInterval);
