@@ -140,9 +140,16 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   // Supabase Auth Login with Admin Login Notification Trigger
-  const loginAdmin = async (email, password) => {
-    if (!email || !password) {
-      showToast('Please provide both email and password.', 'warning');
+  const loginAdmin = async (emailOrPassword, password, suppressToast = false) => {
+    let email = emailOrPassword;
+    let pass = password;
+    if (password === undefined) {
+      email = 'admin@family.com';
+      pass = emailOrPassword;
+    }
+
+    if (!email || !pass) {
+      if (!suppressToast) showToast('Please provide both email and password.', 'warning');
       return false;
     }
 
@@ -150,11 +157,11 @@ export const AppProvider = ({ children }) => {
     if (isSupabaseConfigured()) {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
-        password: password
+        password: pass
       });
 
       if (error) {
-        showToast('Invalid email or password.', 'error');
+        if (!suppressToast) showToast('Invalid email or password.', 'error');
         return false;
       }
 
@@ -169,7 +176,7 @@ export const AppProvider = ({ children }) => {
       }
       success = true;
     } else {
-      if (email.trim().toLowerCase() === 'admin@family.com' && password === 'admin123') {
+      if (email.trim().toLowerCase() === 'admin@family.com' && pass === 'admin123') {
         setIsAdminAuthenticated(true);
         setIsQuickUnlocked(true);
         localStorage.setItem('ffh_admin_auth', 'true');
@@ -177,7 +184,7 @@ export const AppProvider = ({ children }) => {
         if (!quickUnlockSettings.enabled) setShowSetupQuickUnlockModal(true);
         success = true;
       } else {
-        showToast('Invalid email or password.', 'error');
+        if (!suppressToast) showToast('Invalid email or password.', 'error');
         return false;
       }
     }
@@ -185,7 +192,7 @@ export const AppProvider = ({ children }) => {
     if (success) {
       showToast('Admin logged in successfully', 'success');
       await createNotification('Admin Login', `Admin session authenticated from ${window.navigator.platform || 'Device'}`, 'auth');
-      navigate('/admin/dashboard');
+      navigate('/admin');
       return true;
     }
   };

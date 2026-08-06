@@ -265,101 +265,58 @@ export const PublicDashboard = ({ onNavigateTab, onOpenAdd }) => {
   const isBalancePositive = currentBalance >= 0;
 
   return (
-    <div className="space-y-5 pb-20 md:pb-8 max-w-2xl mx-auto">
+    <div className="space-y-3 sm:space-y-5 pb-0 max-w-2xl mx-auto w-full">
       
-      {/* Large Hero Overview Card */}
+      {/* Top Financial Summary Section (3 Compact Cards) */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-[#FFFFFF] rounded-[24px] p-5 sm:p-6 border border-[#E5E7EB] shadow-xs space-y-4"
+        className="space-y-2.5 sm:space-y-3.5 w-full"
       >
-        <div>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-[#111827] tracking-tight">
-            Family Finance Overview 🏡
-          </h2>
-          <p className="text-[11px] text-[#6B7280] mt-1 leading-relaxed">
-            View your household income, expenses, balance, and recent transactions in one simple dashboard.
-          </p>
-        </div>
-
-        {/* 1. BALANCE CARD (Compact, Black amount, Muted Gray subtitle) */}
-        <div className="bg-[#FFFFFF] rounded-[18px] p-4 border border-[#E5E7EB] shadow-xs space-y-1">
-          <span className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
-            Current Balance
-          </span>
-          <div className="text-2xl sm:text-3xl font-black text-[#111827] tracking-tight">
-            {familySettings.currency}{formatIndianNumber(currentBalance)}
-          </div>
-          <span className="text-[10px] font-semibold text-[#6B7280] block">
-            Auto-calculated (Income − Expense)
-          </span>
-        </div>
-
-        {/* 2. INCOME & EXPENSE CARDS GRID (Compact 30-40% reduced height) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-          {/* INCOME CARD */}
-          <div className="bg-[#F0FDF4] rounded-[18px] p-4 border border-[#BBF7D0] shadow-xs space-y-1.5 transition hover:shadow-md">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <div className="w-7 h-7 rounded-lg bg-[#DCFCE7] text-[#22C55E] flex items-center justify-center font-bold">
-                  <TrendingUp className="w-3.5 h-3.5" />
-                </div>
-                <span className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
-                  Total Income
-                </span>
-              </div>
-              <button
-                onClick={() => handleTabSwitch('income')}
-                className="px-2 py-0.5 rounded-md bg-white border border-[#BBF7D0] text-[#2E7D32] hover:bg-emerald-100 text-[10px] font-extrabold transition flex items-center gap-0.5"
-                title="View all income records"
-              >
-                <span>View All</span>
-                <ChevronRight className="w-3 h-3" />
-              </button>
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 w-full">
+          {/* 1. CURRENT BALANCE CARD */}
+          <div className="bg-[#FFFFFF] rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-[#E5E7EB] shadow-xs flex flex-col justify-center space-y-1">
+            <span className="text-[9px] sm:text-xs font-bold text-[#6B7280] uppercase tracking-wider truncate">
+              Current Balance
+            </span>
+            <div className="text-base sm:text-2xl font-bold text-[#111827] tracking-tight truncate">
+              {familySettings.currency}{formatIndianNumber(currentBalance)}
             </div>
-            <div className="text-2xl font-black text-[#22C55E]">
+          </div>
+
+          {/* 2. INCOME CARD */}
+          <div className="bg-[#F0FDF4] rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-[#BBF7D0] shadow-xs flex flex-col justify-center space-y-1 transition hover:shadow-md">
+            <span className="text-[9px] sm:text-xs font-bold text-[#6B7280] uppercase tracking-wider truncate">
+              Income
+            </span>
+            <div className="text-base sm:text-2xl font-bold text-[#22C55E] tracking-tight truncate">
               {familySettings.currency}{formatIndianNumber(totalIncome)}
             </div>
           </div>
 
-          {/* EXPENSE CARD */}
-          <div className="bg-[#FEF2F2] rounded-[18px] p-4 border border-[#FECACA] shadow-xs space-y-1.5 transition hover:shadow-md">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <div className="w-7 h-7 rounded-lg bg-[#FEE2E2] text-[#EF4444] flex items-center justify-center font-bold">
-                  <TrendingDown className="w-3.5 h-3.5" />
-                </div>
-                <span className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
-                  Total Expenses
-                </span>
-              </div>
-              <button
-                onClick={() => handleTabSwitch('expense')}
-                className="px-2 py-0.5 rounded-md bg-white border border-[#FECACA] text-[#EF4444] hover:bg-rose-100 text-[10px] font-extrabold transition flex items-center gap-0.5"
-                title="View all expense records"
-              >
-                <span>View All</span>
-                <ChevronRight className="w-3 h-3" />
-              </button>
-            </div>
-            <div className="text-2xl font-black text-[#EF4444]">
+          {/* 3. EXPENSES CARD */}
+          <div className="bg-[#FEF2F2] rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-[#FECACA] shadow-xs flex flex-col justify-center space-y-1 transition hover:shadow-md">
+            <span className="text-[9px] sm:text-xs font-bold text-[#6B7280] uppercase tracking-wider truncate">
+              Expenses
+            </span>
+            <div className="text-base sm:text-2xl font-bold text-[#EF4444] tracking-tight truncate">
               {familySettings.currency}{formatIndianNumber(totalExpense)}
             </div>
           </div>
         </div>
 
-        {/* ACTION BUTTONS */}
+        {/* Action Buttons (+ Add Income / + Add Expense) */}
         {onOpenAdd && (
-          <div className="grid grid-cols-2 gap-3 pt-0.5">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <button
               onClick={() => onOpenAdd('income')}
-              className="h-[40px] rounded-[12px] bg-[#2E7D32] hover:bg-[#256D27] text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5"
+              className="h-[38px] sm:h-[40px] rounded-xl bg-[#2E7D32] hover:bg-[#256D27] text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer"
             >
               + Add Income
             </button>
             <button
               onClick={() => onOpenAdd('expense')}
-              className="h-[44px] rounded-[14px] bg-[#EF4444] hover:bg-[#DC2626] text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5"
+              className="h-[38px] sm:h-[40px] rounded-xl bg-[#EF4444] hover:bg-[#DC2626] text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer"
             >
               + Add Expense
             </button>
@@ -368,9 +325,9 @@ export const PublicDashboard = ({ onNavigateTab, onOpenAdd }) => {
       </motion.div>
 
       {/* Recent Transactions Section */}
-      <div className="bg-[#FFFFFF] rounded-[24px] p-6 border border-[#E5E7EB] shadow-xs space-y-4">
+      <div className="bg-[#FFFFFF] rounded-[24px] sm:rounded-[28px] p-3.5 sm:p-6 border border-[#E5E7EB] shadow-xs space-y-3 sm:space-y-4 w-full">
         <div className="flex items-center justify-between">
-          <h3 className="font-extrabold text-base text-[#111827]">
+          <h3 className="font-extrabold text-sm sm:text-base text-[#111827]">
             Recent Transactions
           </h3>
           <button
@@ -379,13 +336,13 @@ export const PublicDashboard = ({ onNavigateTab, onOpenAdd }) => {
             title="View all transactions"
           >
             <span>View All</span>
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
         </div>
 
-        <div className="space-y-2.5">
+        <div className="space-y-2 sm:space-y-2.5">
           {recentTransactions.length === 0 ? (
-            <div className="py-8 text-center text-xs font-bold text-[#6B7280]">
+            <div className="py-6 text-center text-xs font-bold text-[#6B7280]">
               No transactions recorded yet.
             </div>
           ) : (
@@ -396,42 +353,42 @@ export const PublicDashboard = ({ onNavigateTab, onOpenAdd }) => {
               return (
                 <div
                   key={t.id}
-                  className={`p-3.5 rounded-2xl border transition flex items-center justify-between gap-3 ${
+                  className={`p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border transition flex items-center justify-between gap-2.5 ${
                     isIncome
                       ? 'bg-[#F0FDF4] border-[#BBF7D0] hover:bg-[#DCFCE7]/50'
                       : 'bg-[#FEF2F2] border-[#FECACA] hover:bg-[#FEE2E2]/50'
                   }`}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-2.5 min-w-0">
                     <div
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
+                      className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
                         isIncome
                           ? 'bg-[#DCFCE7] text-[#22C55E]'
                           : 'bg-[#FEE2E2] text-[#EF4444]'
                       }`}
                     >
-                      {isIncome ? <ArrowDownRight className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
+                      {isIncome ? <ArrowDownRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                     </div>
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <h4 className="font-bold text-xs text-[#111827] truncate">
                           {isIncome ? t.source : (t.category || t.expense_name)}
                         </h4>
                         {t.member && (
-                          <span className="text-[9px] font-bold px-2 py-0.2 rounded-full bg-emerald-50 text-[#2E7D32] border border-emerald-100 shrink-0">
+                          <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-50 text-[#2E7D32] border border-emerald-100 shrink-0">
                             {t.member}
                           </span>
                         )}
                       </div>
-                      <span className="text-[11px] text-[#6B7280] block mt-0.5">
+                      <span className="text-[10px] sm:text-[11px] text-[#6B7280] block mt-0.5">
                         {formatDisplayDate(t.date)}
                       </span>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                     <span
-                      className={`text-sm font-extrabold ${
+                      className={`text-xs sm:text-sm font-extrabold ${
                         isIncome ? 'text-[#22C55E]' : 'text-[#EF4444]'
                       }`}
                     >
@@ -455,19 +412,20 @@ export const PublicDashboard = ({ onNavigateTab, onOpenAdd }) => {
         </div>
       </div>
 
-      {/* Monthly Summary Card */}
-      <div className="bg-[#FFFFFF] rounded-[24px] p-6 border border-[#E5E7EB] shadow-xs space-y-4">
-        <h3 className="font-extrabold text-base text-[#111827]">
+      {/* Monthly Summary Card (Mobile Optimized) */}
+      <div className="bg-[#FFFFFF] rounded-xl sm:rounded-2xl p-3 sm:p-6 border border-[#E5E7EB] shadow-xs space-y-2 sm:space-y-4 w-full">
+        <h3 className="font-extrabold text-xs sm:text-base text-[#111827]">
           Monthly Summary
         </h3>
 
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-xs font-bold">
-              <span className="text-[#22C55E] font-extrabold">Income</span>
-              <span className="text-[#111827]">{familySettings.currency}{formatIndianNumber(totalIncome)}</span>
+        <div className="space-y-2 sm:space-y-3.5">
+          {/* Income Row & Progress Bar */}
+          <div className="space-y-1 sm:space-y-1.5">
+            <div className="flex justify-between items-center">
+              <span className="text-xs sm:text-sm font-bold text-[#22C55E]">Income</span>
+              <span className="text-xs sm:text-sm font-semibold text-[#111827]">{familySettings.currency}{formatIndianNumber(totalIncome)}</span>
             </div>
-            <div className="h-3.5 w-full bg-[#F0FDF4] border border-[#BBF7D0] rounded-full overflow-hidden">
+            <div className="h-[5px] sm:h-3.5 w-full bg-[#F0FDF4] border border-[#BBF7D0] rounded-full overflow-hidden">
               <div
                 className="h-full bg-[#22C55E] rounded-full transition-all duration-500"
                 style={{ width: `${incomePercent}%` }}
@@ -475,12 +433,13 @@ export const PublicDashboard = ({ onNavigateTab, onOpenAdd }) => {
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-xs font-bold">
-              <span className="text-[#EF4444] font-extrabold">Expense</span>
-              <span className="text-[#111827]">{familySettings.currency}{formatIndianNumber(totalExpense)}</span>
+          {/* Expense Row & Progress Bar */}
+          <div className="space-y-1 sm:space-y-1.5">
+            <div className="flex justify-between items-center">
+              <span className="text-xs sm:text-sm font-bold text-[#EF4444]">Expense</span>
+              <span className="text-xs sm:text-sm font-semibold text-[#111827]">{familySettings.currency}{formatIndianNumber(totalExpense)}</span>
             </div>
-            <div className="h-3.5 w-full bg-[#FEF2F2] border border-[#FECACA] rounded-full overflow-hidden">
+            <div className="h-[5px] sm:h-3.5 w-full bg-[#FEF2F2] border border-[#FECACA] rounded-full overflow-hidden">
               <div
                 className="h-full bg-[#EF4444] rounded-full transition-all duration-500"
                 style={{ width: `${expensePercent}%` }}
